@@ -1,25 +1,85 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "My submission"
+output: html_document
 ---
 
+This is work work this this assignment
 
-## Loading and preprocessing the data
+### Loading and preprocessing the data
 
+This step requires to have activity.csv in the repository
+```{r}
+data <- read.csv("activity.csv")
+data$date<-as.Date(data$date)
+```
 
+### What is mean total number of steps taken per day?
+```{r}
+stepsPerDay <- tapply(data$steps, data$date, sum, na.rm=T)
+hist(stepsPerDay, main = "Total number of steps per day", 
+    xlab = "Steps per day", ylab = "Frequency")
+```
 
-## What is mean total number of steps taken per day?
+Let's print the mean and the median
+```{r}
+mean(stepsPerDay, na.rm = T)
+median(stepsPerDay, na.rm = T)
+```
 
+### What is the average daily activity pattern?
+```{r}
+steptsPerIntervals <- tapply(data$steps, data$interval, mean, na.rm=T)
+hist(steptsPerIntervals, main = "averaged number of steps per interval", 
+    xlab = "Steps per interval", ylab = "Frequency")
+intervals <- unique(data$interval)
+plot(intervals, steptsPerIntervals, type = "l", main = "time series plot of the 5-minute interval",  xlab = "interval", ylab = "Steps per interval")
+```
 
+Let's get the interval containing the maximum number of steps
+```{r}
+intervals[steptsPerIntervals == max(steptsPerIntervals)][1]
+```
 
-## What is the average daily activity pattern?
+### Imputing missing values
 
+Lets's print the number of NAs
+```{r}
+naSteps <- data$steps[is.na(data$steps)]
+length(naSteps)
+```
 
+I decided to fill missing values with the mean of each step and create my data
+```{r}
+naSteps <- rep(mean(data$steps, na.rm = T), length(naSteps))
+newData <- data[,c(1,2,3)]
+newData$steps[is.na(data$steps)] <- naSteps
+```
 
-## Imputing missing values
+Let's create our new histogram and compute the mean and the median of total number of steps taken per day
+```{r}
+newStepsPerDay <- tapply(newData$steps, newData$date, sum)
+hist(newStepsPerDay, main = "histogram of the total number of steps taken each day")
+newStepsPerIntervals <- tapply(newData$steps, newData$interval, mean)
+mean(newStepsPerDay)
+median(newStepsPerDay)
+```
+These values differ from the previous ones and the mean is equal to the median (I can't explain that..)
 
+### Are there differences in activity patterns between weekdays and weekends?
+```{r}
+Sys.setlocale("LC_TIME", "English")
+weekends <- c("Saturday", "Sunday")
+newData$weekdays <- weekdays(newData$date)
+newData$weekdays <- ifelse(newData$weekdays %in% weekends,"weekend","weekday")
+newData$weekdays <- as.factor(newData$weekdays)
+weekendIndex <- newData$weekdays == "weekend"
+newStepsPerIntervalsWeekend <- tapply(newData$steps[weekendIndex], newData$interval[weekendIndex], mean)
+newStepsPerIntervalsWeekday <- tapply(newData$steps[!weekendIndex], newData$interval[!weekendIndex], mean)
+par(mfrow = c(2,1))
+plot(intervals, newStepsPerIntervalsWeekend, type = "l", xlab = "Interval", 
+    ylab = "Number of steps", , main = "Weekend")
+plot(intervals, newStepsPerIntervalsWeekday, type = "l", xlab = "Interval", 
+    ylab = "Number of steps", , main = "Weekday")
+```
 
-
-## Are there differences in activity patterns between weekdays and weekends?
+Between these two patterns the user is walking more in the intervals 500-1000 on weekdays and walking more on 800-2000 intervals
